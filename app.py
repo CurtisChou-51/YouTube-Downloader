@@ -55,18 +55,5 @@ def download():
 if __name__ == '__main__':
     app.run(debug=True)
 
-# Prerequisites:
-# Python 3 and pip installed on system
-
-# How to run the app:
-# 1. Open the terminal and navigate to the project directory
-# 2. Install the required packages: pip install -r requirements.txt
-# 2. Run the app: python3 app.py
-
-# If you have issues, try to run the app in a virtual environment:
-# 1. Open the terminal and navigate to the project directory
-# 2. Create a virtual environment by running: python3 -m venv venv
-# 3.1 macOS/Linux: Activate the virtual environment: source .venv/bin/activate
-# 3.2 Windows: Activate the virtual environment: .venv\Scripts\activate
-# 4. Once activated, install the required packages: pip install -r requirements.txt
-# 5. Run the app: python3 app.py
+# You can change the resolution of the video stream by changing the resolution parameter in the video_stream variable.
+# Note: If a video isn't available in the specified resolution, the downloaded video will be empty.
