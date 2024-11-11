@@ -36,7 +36,7 @@ A YouTube downloader application built with Python and Flask. Users can download
 6. Start the Flask server: `python3 app.py`
 7. Open a web browser and go to http://127.0.0.1:5000
 
-# 🚨 Disclaimer
+<!--# 🚨 Disclaimer
 This tool is intended for **personal, non-commercial use only**. By using this tool, you agree to comply with YouTube's [Terms of Service](https://www.youtube.com/static?template=terms), which prohibit downloading or copying content without explicit permission, unless a download option is explicitly provided by YouTube.
 
-Unauthorized downloading of YouTube videos may violate YouTube's terms and could lead to account suspension or legal action. Please ensure that you have permission to download content before using this tool.
+Unauthorized downloading of YouTube videos may violate YouTube's terms and could lead to account suspension or legal action. Please ensure that you have permission to download content before using this tool.-->
