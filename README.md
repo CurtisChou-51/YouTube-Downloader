@@ -9,6 +9,7 @@ A YouTube downloader application built with Python and Flask. Users can download
 - Download audio in MP3 format
 - User-friendly web interface
 - Error handling for invalid YouTube links
+- Change video resolution
 
 # ⚡️ Tech Stack
 - **Python 3.x:** Programming language for the backend logic
