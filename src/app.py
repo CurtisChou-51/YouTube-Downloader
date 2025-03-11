@@ -53,7 +53,7 @@ def download():
         return send_file(output_filename, as_attachment=True)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
 
 # You can change the resolution of the video stream by changing the resolution parameter in the video_stream variable.
 # Note: If a video isn't available in the specified resolution, the downloaded video will be empty.
