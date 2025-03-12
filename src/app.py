@@ -1,14 +1,16 @@
-from flask import Flask, request, jsonify, send_from_directory, send_file
+﻿from flask import Flask, request, jsonify, send_from_directory, send_file
 from pytubefix import YouTube
 import os
 from datetime import datetime
 import certifi
 import ssl
 import urllib.request
+import json
 
 context = ssl.create_default_context(cafile=certifi.where())
 opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=context))
 urllib.request.install_opener(opener)
+mount_path = '/tmp/download'
 
 app = Flask(__name__)
 
@@ -38,19 +40,28 @@ def download():
         os.remove(audio_filename)
         return send_file(output_filename, as_attachment=True)
     else:
-        video_stream = video.streams.filter(progressive=False, file_extension='mp4', resolution='1080p').order_by('resolution').desc().first()
+        video_stream = video.streams.filter(progressive=False, resolution='1080p').order_by('resolution').desc().first()
         if not video_stream:
             return jsonify({'message': 'No suitable video stream found'}), 404
-        video_filename = f'video_{timestamp}.mp4'
-        audio_filename = f'audio_{timestamp}.m4a'
-        output_filename = f'output_{timestamp}.mp4'
-        video_stream.download(filename=video_filename)
+
+        # Just save files to the mounted volume location
+        # ffmpeg conversion is executed outside of the Docker container on the host machine
+        save_dir = os.path.join(mount_path, timestamp)
+        os.makedirs(save_dir, exist_ok=True)
+        video_stream.download(output_path=save_dir, filename='video')
         audio_stream = video.streams.filter(only_audio=True).order_by('abr').desc().first()
-        audio_stream.download(filename=audio_filename)
-        os.system(f'ffmpeg -i {video_filename} -i {audio_filename} -c:v libx264 -c:a aac -y {output_filename}')
-        os.remove(video_filename)
-        os.remove(audio_filename)
-        return send_file(output_filename, as_attachment=True)
+        audio_stream.download(output_path=save_dir, filename='audio')
+        video_info = {
+            'title': video.title,
+            'length': video.length,
+            'views': video.views,
+            'author': video.author,
+            'publish_date': video.publish_date.strftime('%Y-%m-%d')
+        }
+        with open(os.path.join(save_dir, 'ok.json'), 'w') as f:
+            json.dump(video_info, f)
+        # os.system(f'ffmpeg -i {video_filename} -i {audio_filename} -c:v libx264 -c:a aac -y {output_filename}')
+        return jsonify(video_info)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

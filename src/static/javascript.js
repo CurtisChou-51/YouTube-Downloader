@@ -1,4 +1,4 @@
-document.getElementById('input-container').addEventListener('submit', function(event) {
+﻿document.getElementById('input-container').addEventListener('submit', function(event) {
     event.preventDefault();
     const url = document.getElementById('url').value;
     const audioOnly = document.getElementById('audioOnly').value;
@@ -14,18 +14,9 @@ document.getElementById('input-container').addEventListener('submit', function(e
         },
         body: JSON.stringify({ url: url, audioOnly: audioOnly })
     })
-    .then(response => response.blob())
-    .then(blob => {
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = downloadUrl;
-        a.download = audioOnly === 'yes' ? 'audio.mp3' : 'video.mp4';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(downloadUrl);
-
-        // Hide loading spinner
+    .then(response => response.json())
+    .then(json => {
+        console.log(json);
         loadingIcon.style.display = 'none';
     })
     .catch(error => {
