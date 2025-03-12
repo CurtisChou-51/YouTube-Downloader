@@ -1,0 +1,12 @@
+﻿name: yt-py-compose-stack
+
+services:
+  yt-py:
+    container_name: yt-py-container
+    image: yt-py-image
+    build: .
+    ports:
+      - "5000:5000"
+    restart: always
+    volumes:
+      - "D:\\yt-py-download:/tmp/download"
