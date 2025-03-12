@@ -22,46 +22,66 @@ def index():
 def mp3():
     return send_from_directory('.', 'mp3.html')
 
+# Just save files to the mounted volume location
+# ffmpeg conversion is executed outside of the Docker container on the host machine
 @app.route('/download', methods=['POST'])
 def download():
     data = request.get_json()
     url = data['url']
     audio_only = data['audioOnly'].strip().lower() == 'yes'
 
-    video = YouTube(url)
+    yt, error = try_get_yt(url)
+    if not yt:
+        return jsonify({'message': error}), 404
+
+    save_dir = create_save_dir()
+    audio_error = save_audio(yt, save_dir)
+    video_error = None if audio_only else save_video(yt, save_dir)
+    save_json(yt, save_dir)
+    if audio_error or video_error:
+        return jsonify({'message': audio_error or video_error}), 404
+    return jsonify({'message': 'success'})
+
+def try_get_yt(url):
+    try:
+        yt = YouTube(url)
+        # check access to yt.title to ensure the video is valid
+        print(yt.title)
+        return yt, None
+    except Exception as e:
+        return None, str(e)
+
+def create_save_dir():
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    save_dir = os.path.join(mount_path, timestamp)
+    os.makedirs(save_dir, exist_ok=True)
+    return save_dir
 
-    if audio_only:
-        audio_stream = video.streams.filter(only_audio=True).order_by('abr').desc().first()
-        audio_filename = f'audio_{timestamp}.m4a'
-        output_filename = f'audio_{timestamp}.mp3'
-        audio_stream.download(filename=audio_filename)
-        os.system(f'ffmpeg -i {audio_filename} -q:a 0 -map a {output_filename}')
-        os.remove(audio_filename)
-        return send_file(output_filename, as_attachment=True)
-    else:
-        video_stream = video.streams.filter(progressive=False, resolution='1080p').order_by('resolution').desc().first()
-        if not video_stream:
-            return jsonify({'message': 'No suitable video stream found'}), 404
+def save_audio(yt, save_dir):
+    audio_stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
+    if not audio_stream:
+        return 'No audio stream found'
+    audio_stream.download(output_path=save_dir, filename='audio')
+    return None
 
-        # Just save files to the mounted volume location
-        # ffmpeg conversion is executed outside of the Docker container on the host machine
-        save_dir = os.path.join(mount_path, timestamp)
-        os.makedirs(save_dir, exist_ok=True)
-        video_stream.download(output_path=save_dir, filename='video')
-        audio_stream = video.streams.filter(only_audio=True).order_by('abr').desc().first()
-        audio_stream.download(output_path=save_dir, filename='audio')
-        video_info = {
-            'title': video.title,
-            'length': video.length,
-            'views': video.views,
-            'author': video.author,
-            'publish_date': video.publish_date.strftime('%Y-%m-%d')
-        }
-        with open(os.path.join(save_dir, 'ok.json'), 'w') as f:
-            json.dump(video_info, f)
-        # os.system(f'ffmpeg -i {video_filename} -i {audio_filename} -c:v libx264 -c:a aac -y {output_filename}')
-        return jsonify(video_info)
+def save_video(yt, save_dir):
+    video_stream = yt.streams.filter(progressive=False, resolution='1080p').order_by('resolution').desc().first()
+    if not video_stream:
+        return 'No suitable video stream found'
+    video_stream.download(output_path=save_dir, filename='video')
+    return None
+
+def save_json(yt, save_dir):
+    yt_info = {
+        'title': yt.title,
+        'length': yt.length,
+        'views': yt.views,
+        'author': yt.author,
+        'publish_date': yt.publish_date.strftime('%Y-%m-%d')
+    }
+    with open(os.path.join(save_dir, 'ok.json'), 'w') as f:
+        json.dump(yt_info, f)
+    return None
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
