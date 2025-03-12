@@ -65,7 +65,7 @@ def save_audio(yt, save_dir):
     return None
 
 def save_video(yt, save_dir):
-    video_stream = yt.streams.filter(progressive=False, resolution='1080p').order_by('resolution').desc().first()
+    video_stream = yt.streams.filter(progressive=False).order_by('resolution').desc().first()
     if not video_stream:
         return 'No suitable video stream found'
     video_stream.download(output_path=save_dir, filename='video')
