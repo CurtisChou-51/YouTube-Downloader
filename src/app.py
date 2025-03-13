@@ -30,26 +30,17 @@ def download():
     url = data['url']
     audio_only = data['audioOnly'].strip().lower() == 'yes'
 
-    yt, error = try_get_yt(url)
-    if not yt:
-        return jsonify({'message': error}), 404
-
-    save_dir = create_save_dir()
-    audio_error = save_audio(yt, save_dir)
-    video_error = None if audio_only else save_video(yt, save_dir)
-    save_json(yt, save_dir)
-    if audio_error or video_error:
-        return jsonify({'message': audio_error or video_error}), 404
-    return jsonify({'message': 'success'})
-
-def try_get_yt(url):
     try:
         yt = YouTube(url)
-        # check access to yt.title to ensure the video is valid
-        print(yt.title)
-        return yt, None
+        save_dir = create_save_dir()
+        audio_error = save_audio(yt, save_dir)
+        video_error = None if audio_only else save_video(yt, save_dir)
+        save_json(yt, save_dir)
+        if audio_error or video_error:
+            return jsonify({'message': audio_error or video_error}), 404
+        return jsonify({'message': 'success'})
     except Exception as e:
-        return None, str(e)
+        return jsonify({'message': str(e)}), 404
 
 def create_save_dir():
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
