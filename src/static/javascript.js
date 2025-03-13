@@ -1,7 +1,7 @@
 ﻿document.getElementById('input-container').addEventListener('submit', function(event) {
     event.preventDefault();
     const url = document.getElementById('url').value;
-    const audioOnly = document.getElementById('audioOnly').value;
+    const audioOnly = document.getElementById('audioOnly').checked;
 
     // Show loading spinner
     const loadingIcon = document.getElementById('loading-icon');

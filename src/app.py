@@ -18,23 +18,16 @@ app = Flask(__name__)
 def index():
     return send_from_directory('.', 'index.html')
 
-@app.route('/mp3')
-def mp3():
-    return send_from_directory('.', 'mp3.html')
-
 # Just save files to the mounted volume location
 # ffmpeg conversion is executed outside of the Docker container on the host machine
 @app.route('/download', methods=['POST'])
 def download():
     data = request.get_json()
-    url = data['url']
-    audio_only = data['audioOnly'].strip().lower() == 'yes'
-
     try:
-        yt = YouTube(url)
+        yt = YouTube(data['url'])
         save_dir = create_save_dir()
         audio_error = save_audio(yt, save_dir)
-        video_error = None if audio_only else save_video(yt, save_dir)
+        video_error = None if data['audioOnly'] else save_video(yt, save_dir)
         save_json(yt, save_dir)
         if audio_error or video_error:
             return jsonify({'message': audio_error or video_error}), 404
