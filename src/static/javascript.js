@@ -17,6 +17,8 @@
     .then(response => response.json())
     .then(json => {
         console.log(json);
+        if (json.dir_name)
+            getFile(json.dir_name);
         loadingIcon.style.display = 'none';
     })
     .catch(error => {
@@ -26,3 +28,14 @@
         loadingIcon.style.display = 'none';
     });
 });
+
+function getFile(dir_name) {
+    let form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/get_file?dir_name=${dir_name}`;
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(() => {
+        form.remove();
+    }, 10);
+}
