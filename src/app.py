@@ -1,4 +1,4 @@
-﻿from flask import Flask, request, jsonify, send_from_directory, send_file, after_this_request
+﻿from flask import Flask, request, jsonify, send_from_directory, send_file, after_this_request, redirect
 from pytubefix import YouTube
 import os
 from datetime import datetime
@@ -7,11 +7,18 @@ import ssl
 import urllib.request
 import json
 import re
+import time
+from threading import Thread
 
 context = ssl.create_default_context(cafile=certifi.where())
 opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=context))
 urllib.request.install_opener(opener)
 mount_path = '/tmp/download'
+
+verification_url = None
+user_code = None
+oauth_verifier_release = False
+oauth_waiting = False
 
 app = Flask(__name__)
 
@@ -24,7 +31,7 @@ def index():
 def download():
     data = request.get_json()
     try:
-        yt = YouTube(data['url'])
+        yt = YouTube(data['url'], use_oauth=True, allow_oauth_cache=True, oauth_verifier=my_oauth_verifier)
         save_dir = create_save_dir()
         audio_error = save_audio(yt, save_dir)
         video_error = None if data['audioOnly'] else save_video(yt, save_dir)
@@ -92,6 +99,49 @@ def exec_ffmprg(save_dir, title):
     elif os.path.exists(audio_filename):
         os.system(f'ffmpeg -i {audio_filename} -c:a libmp3lame "{output_filename}"')
         os.remove(audio_filename)
+
+@app.route('/oauth_start')
+def oauth_start():
+    global verification_url, user_code, oauth_verifier_release
+    verification_url = None
+    user_code = None
+    oauth_verifier_release = False
+
+    thread = Thread(target=start_youtube_oauth)
+    thread.start()
+    while user_code is None:
+        time.sleep(1)
+    return redirect(f'{verification_url}?user_code={user_code}')
+
+def start_youtube_oauth():
+    try:
+        yt = YouTube('https://www.youtube.com/watch?v=fooFooBar_b', use_oauth=True, allow_oauth_cache=True, oauth_verifier=my_oauth_verifier)
+        print(yt.title)
+    except Exception as e:
+        print(str(e))
+
+def my_oauth_verifier(url, code):
+    global verification_url, user_code, oauth_verifier_release, oauth_waiting
+    verification_url = url
+    user_code = code
+    oauth_waiting = True
+    while not oauth_verifier_release:
+        time.sleep(1)
+    oauth_waiting = False
+
+@app.route('/oauth_end')
+def oauth_end():
+    global oauth_verifier_release, oauth_waiting
+    if not oauth_waiting:
+        return jsonify({'message': 'oauth process not waiting'})
+    oauth_verifier_release = True
+
+    # pytubefix token file path in Docker env
+    time.sleep(1)
+    token_path = '/usr/local/lib/python3.9/site-packages/pytubefix/__cache__/tokens.json'
+    while not os.path.exists(token_path):
+        time.sleep(1)
+    return jsonify({'message': 'token created'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
